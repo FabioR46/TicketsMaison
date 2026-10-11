@@ -2,12 +2,12 @@
   "domain": "tickets_maison",
   "name": "Tickets Maison",
   "version": "1.0.0",
-  "documentation": "https://github.com/TON_COMPTE/tickets-maison-ha",
+  "documentation": "https://github.com/FabioR46/TicketsMaison",
   "codeowners": [],
   "config_flow": true,
   "dependencies": [],
   "requirements": [],
   "iot_class": "cloud_polling",
   "integration_type": "service",
-  "issue_tracker": "https://github.com/FabioR46/tickets-maison-ha/issues"
+  "issue_tracker": "https://github.com/FabioR46/TicketsMaison/issues"
 }
