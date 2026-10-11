@@ -1,33 +1,17 @@
 # Carte pour le tableau de bord Home Assistant :
 # Modifier le tableau de bord › + Ajouter une carte › tout en bas « Manuel » › colle ce texte.
-type: vertical-stack
-cards:
-  - type: glance
-    title: Tickets Maison
-    columns: 4
-    entities:
-      - entity: sensor.tickets_maison_envoyes
-        name: Envoyés
-      - entity: sensor.tickets_maison_en_cours
-        name: En cours
-      - entity: sensor.tickets_maison_en_attente
-        name: Attente
-      - entity: sensor.tickets_maison_urgents
-        name: Urgents
-  - type: todo-list
-    title: À faire
-    entity: todo.tickets_maison_a_faire
-    hide_completed: true
-  - type: markdown
-    content: >
-      {% set down = states('sensor.tickets_maison_hors_ligne') | int(0) %}
-      {% set total = state_attr('sensor.tickets_maison_hors_ligne', 'surveilles') | int(0) %}
-      {% if total > 0 %}{% if down == 0 %}🟢 **{{ total }} appareils surveillés** · tout est en ligne{% else %}🔴 **{{ down }} hors ligne** sur {{ total }} : {{ state_attr('sensor.tickets_maison_hors_ligne', 'noms') }}{% endif %}{% endif %}
-
-
-      {% set tickets = state_attr('sensor.tickets_maison_ouverts', 'tickets') or [] %}
-      {% set dots = {'sent': '🟣', 'inProgress': '🟠', 'waitingUser': '🟡'} %}
-      {% if tickets | count == 0 %}✅ Aucun ticket ouvert{% else %}{% for t in tickets %}
-      {{ dots.get(t.status, '⚪') }} **{{ t.title }}**{% if t.priority == 'urgent' %} ⚠️{% endif %} — {{ t.zone }}<br><small>{{ t.number }} · {{ t.status_label }} · {{ t.author }} · {{ as_timestamp(t.created_at) | timestamp_custom('%d/%m %H:%M') }}</small>
-
-      {% endfor %}{% endif %}
+type: markdown
+title: Tickets Maison
+content: |
+  {%- set tickets = state_attr('sensor.tickets_maison_ouverts', 'tickets') or [] -%}
+  {%- set dots = {'sent': '🟣', 'inProgress': '🟠', 'waitingUser': '🟡'} -%}
+  {%- set labels = {'sent': 'Envoyé', 'inProgress': 'En cours', 'waitingUser': 'En attente de réponse'} -%}
+  {%- if tickets | count == 0 %}
+  ✅ Aucun ticket en cours
+  {%- else %}
+  | Problème | Statut |
+  |:---|:---|
+  {%- for t in tickets %}
+  | {{ t.title }}{{ ' ⚠️' if t.priority == 'urgent' else '' }} | {{ dots.get(t.status, '⚪') }} {{ labels.get(t.status, t.status) }} |
+  {%- endfor %}
+  {%- endif %}

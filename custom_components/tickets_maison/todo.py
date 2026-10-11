@@ -5,8 +5,6 @@
 """
 from __future__ import annotations
 
-from datetime import datetime
-
 from homeassistant.components.todo import (
     TodoItem,
     TodoItemStatus,
@@ -22,6 +20,7 @@ from .api import TicketsMaisonError
 from .entity import TicketsMaisonEntity
 
 DOTS = {"sent": "🟣", "inProgress": "🟠", "waitingUser": "🟡"}
+LABELS = {"sent": "Envoyé", "inProgress": "En cours", "waitingUser": "En attente de réponse"}
 
 
 async def async_setup_entry(
@@ -45,23 +44,14 @@ class TicketsMaisonTodo(TicketsMaisonEntity, TodoListEntity):
     def todo_items(self) -> list[TodoItem]:
         items: list[TodoItem] = []
         for t in (self.coordinator.data or {}).get("tickets") or []:
+            status = t.get("status")
             urgent = " ⚠️" if t.get("priority") == "urgent" else ""
-            when = ""
-            try:
-                when = datetime.fromisoformat(t["created_at"]).strftime("%d/%m %H:%M")
-            except (KeyError, TypeError, ValueError):
-                pass
-            lines = [
-                f"{t.get('zone', '')} · {t.get('status_label', '')} · {t.get('number', '')}",
-                f"Par {t.get('author', '')} le {when}".strip(),
-            ]
-            if t.get("details"):
-                lines.append(t["details"])
             items.append(TodoItem(
                 uid=str(t.get("id")),
-                summary=f"{DOTS.get(t.get('status'), '⚪')} {t.get('title', '')}{urgent}",
+                # « 🟣 Fuite sous l'évier — Envoyé »
+                summary=f"{DOTS.get(status, '⚪')} {t.get('title', '')}{urgent} — {LABELS.get(status, status or '')}",
                 status=TodoItemStatus.NEEDS_ACTION,
-                description="\n".join(lines),
+                description=t.get("zone") or None,
             ))
         return items
 
