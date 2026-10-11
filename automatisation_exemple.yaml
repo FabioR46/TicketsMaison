@@ -1,0 +1,13 @@
+# Exemple : notification sur le téléphone à chaque nouveau ticket.
+# Paramètres › Automatisations › Créer › ⋮ › Modifier en YAML › colle ce texte,
+# puis remplace notify.notify par ton téléphone (ex. notify.mobile_app_iphone_de_fabien).
+alias: "Tickets Maison – nouveau ticket"
+mode: queued
+triggers:
+  - trigger: event
+    event_type: tickets_maison_nouveau_ticket
+actions:
+  - action: notify.notify
+    data:
+      title: "🎫 {{ trigger.event.data.title }}"
+      message: "{{ trigger.event.data.zone }} · par {{ trigger.event.data.author }} ({{ trigger.event.data.house }})"

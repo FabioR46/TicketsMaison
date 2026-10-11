@@ -1,0 +1,30 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connecter Tickets Maison",
+        "description": "Dans l'app Tickets Maison : Réglages › Home Assistant › Copier le code. Colle-le ci-dessous.",
+        "data": {
+          "code": "Code de connexion"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Reconnecter Tickets Maison",
+        "description": "La clé n'est plus acceptée. Colle un nouveau code depuis l'app (Réglages › Home Assistant).",
+        "data": {
+          "code": "Code de connexion"
+        }
+      }
+    },
+    "error": {
+      "invalid_code": "Code illisible : recopie-le en entier depuis l'app.",
+      "invalid_auth": "Clé Supabase refusée.",
+      "house_not_found": "Maison introuvable, ou supabase_v5.sql n'a pas été exécuté dans Supabase.",
+      "cannot_connect": "Impossible de joindre Supabase (ou supabase_v5.sql n'a pas été exécuté)."
+    },
+    "abort": {
+      "already_configured": "Cette maison est déjà connectée.",
+      "reauth_successful": "Reconnexion réussie."
+    }
+  }
+}

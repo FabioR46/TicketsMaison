@@ -1,0 +1,30 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect Tickets Maison",
+        "description": "In the Tickets Maison app: Settings › Home Assistant › Copy code. Paste it below.",
+        "data": {
+          "code": "Connection code"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Reconnect Tickets Maison",
+        "description": "The key was rejected. Paste a new code from the app.",
+        "data": {
+          "code": "Connection code"
+        }
+      }
+    },
+    "error": {
+      "invalid_code": "Unreadable code: copy it entirely from the app.",
+      "invalid_auth": "Supabase key rejected.",
+      "house_not_found": "House not found, or supabase_v5.sql was not run in Supabase.",
+      "cannot_connect": "Cannot reach Supabase (or supabase_v5.sql was not run)."
+    },
+    "abort": {
+      "already_configured": "This house is already connected.",
+      "reauth_successful": "Reconnected."
+    }
+  }
+}
