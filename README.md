@@ -19,6 +19,7 @@ urgences, appareils surveillés hors ligne, et la liste des tickets ouverts.
 ## Entités
 | Entité | Contenu |
 |---|---|
+| `todo.tickets_maison_a_faire` | liste « À faire » (Listes de tâches) : cocher = ticket résolu, ajouter = nouveau ticket Maintenance |
 | `sensor.tickets_maison_ouverts` | tickets ouverts (attribut `tickets` = la liste) |
 | `sensor.tickets_maison_envoyes` / `en_cours` / `en_attente` | compteurs par statut |
 | `sensor.tickets_maison_urgents` / `a_valider` | urgences |

@@ -7,7 +7,7 @@ from homeassistant.core import HomeAssistant
 
 from .coordinator import TicketsMaisonCoordinator
 
-PLATFORMS = [Platform.SENSOR, Platform.BINARY_SENSOR]
+PLATFORMS = [Platform.SENSOR, Platform.BINARY_SENSOR, Platform.TODO]
 
 type TicketsMaisonConfigEntry = ConfigEntry[TicketsMaisonCoordinator]
 

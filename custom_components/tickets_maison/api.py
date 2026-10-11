@@ -50,7 +50,8 @@ class TicketsMaisonAPI:
 
     def __init__(self, session: aiohttp.ClientSession, url: str, key: str, house_id: str) -> None:
         self._session = session
-        self._url = f"{url.rstrip('/')}/rest/v1/rpc/ha_summary"
+        self._rest = f"{url.rstrip('/')}/rest/v1"
+        self._url = f"{self._rest}/rpc/ha_summary"
         self._house = house_id
         self._headers = {"apikey": key, "Content-Type": "application/json"}
         if key.startswith("eyJ"):
@@ -78,3 +79,38 @@ class TicketsMaisonAPI:
         if not isinstance(data, dict) or not data.get("house"):
             raise HouseNotFound
         return data
+
+    async def _write(self, method: str, path: str, body: dict[str, Any]) -> None:
+        headers = {**self._headers, "Prefer": "return=minimal"}
+        try:
+            async with self._session.request(
+                method, f"{self._rest}/{path}", headers=headers, json=body,
+                timeout=aiohttp.ClientTimeout(total=15),
+            ) as resp:
+                if resp.status in (401, 403):
+                    raise InvalidAuth
+                if resp.status >= 400:
+                    raise TicketsMaisonError(f"Erreur Supabase {resp.status}: {await resp.text()}")
+        except aiohttp.ClientError as err:
+            raise TicketsMaisonError(f"Connexion impossible : {err}") from err
+
+    async def set_status(self, ticket_id: str, status: str) -> None:
+        """Change le statut d'un ticket (resolved = résolu)."""
+        from datetime import datetime, timezone
+        body: dict[str, Any] = {"status": status}
+        body["resolved_at"] = datetime.now(timezone.utc).isoformat() if status == "resolved" else None
+        await self._write("PATCH", f"tickets?id=eq.{ticket_id}&house_id=eq.{self._house}", body)
+
+    async def create_ticket(self, title: str, details: str = "") -> None:
+        """Nouveau ticket « Maintenance » créé depuis Home Assistant."""
+        await self._write("POST", "tickets", {
+            "house_id": self._house,
+            "theme": "Maintenance",
+            "theme_icon": "wrench.and.screwdriver.fill",
+            "problem": title.strip()[:80],
+            "problem_icon": "checklist",
+            "details": (details or "Ajouté depuis Home Assistant")[:500],
+            "status": "sent",
+            "author": "Home Assistant",
+            "requested_priority": "normal",
+        })
