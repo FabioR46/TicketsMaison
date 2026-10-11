@@ -32,3 +32,7 @@ urgences, appareils surveillés hors ligne, et la liste des tickets ouverts.
 
 ## Carte du tableau de bord
 `carte_dashboard.yaml` : Modifier le tableau de bord › Ajouter une carte › Manuel › colle le contenu.
+
+## Watchdog (surveillance des appareils réseau)
+Le dossier `watchdog` contient un installateur en double-clic pour PC et Mac (Docker Desktop requis) :
+`Installer - Windows.bat` / `Installer - Mac.command`. Voir `watchdog/README.md`.

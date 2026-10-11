@@ -1,0 +1,11 @@
+services:
+  watchdog:
+    build: .
+    container_name: tickets-maison-watchdog
+    restart: unless-stopped
+    env_file: .env
+    logging:
+      driver: json-file
+      options:
+        max-size: "1m"
+        max-file: "3"
