@@ -324,6 +324,13 @@ def main():
     signal.signal(signal.SIGTERM, lambda *_: stop.update(now=True))
     signal.signal(signal.SIGINT, lambda *_: stop.update(now=True))
 
+    # Électroménager Home Connect (activé depuis l'app, voir homeconnect.py)
+    try:
+        from homeconnect import HomeConnectWorker
+        HomeConnectWorker(db, HOUSE_ID, log, stop, lambda dt: dt.astimezone()).start()
+    except Exception as e:
+        log(f"⚠️ Module Home Connect indisponible : {e}")
+
     first = True
     while not stop["now"]:
         started = time.monotonic()

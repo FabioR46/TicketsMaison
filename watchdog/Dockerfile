@@ -6,7 +6,7 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY watchdog.py .
+COPY *.py ./
 
 # Utilisateur sans privilèges
 RUN useradd --create-home --shell /usr/sbin/nologin watchdog
