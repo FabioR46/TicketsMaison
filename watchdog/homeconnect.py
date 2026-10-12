@@ -193,6 +193,19 @@ class HomeConnectWorker(threading.Thread):
             body.setdefault("error", f"http_{e.code}")
             return body
 
+    def token_request(self, fields):
+        """Demande de jeton. Si Home Connect refuse le Client Secret (application « publique »
+        ou secret mal copié), on réessaie sans : le Device Flow n'en a pas toujours besoin."""
+        secret = (self.cfg.get("client_secret") or "").strip()
+        if secret and not self.cfg.get("_skip_secret"):
+            answer = self._form("/security/oauth/token", dict(fields, client_secret=secret))
+            text = f"{answer.get('error', '')} {answer.get('error_description', '')}".lower()
+            if "access_token" in answer or not ("secret" in text or "invalid_client" in text):
+                return answer
+            self.log("ℹ️ Home Connect refuse le Client Secret : nouvel essai sans")
+            self.cfg["_skip_secret"] = True
+        return self._form("/security/oauth/token", fields)
+
     def login(self):
         """Demande un code, l'affiche dans l'app, attend la validation."""
         cfg = self.cfg
@@ -212,11 +225,8 @@ class HomeConnectWorker(threading.Thread):
         interval = int(answer.get("interval", 5))
         while not self.stop["now"] and now_utc() < expires:
             time.sleep(interval)
-            fields = {"grant_type": "device_code", "device_code": answer["device_code"],
-                      "client_id": cfg["client_id"]}
-            if cfg.get("client_secret"):
-                fields["client_secret"] = cfg["client_secret"]
-            token = self._form("/security/oauth/token", fields)
+            token = self.token_request({"grant_type": "device_code", "device_code": answer["device_code"],
+                                        "client_id": cfg["client_id"]})
             if "access_token" in token:
                 self._store_token(token)
                 self.save_cfg(status="connected", user_code=None, verification_uri=None,
@@ -231,8 +241,11 @@ class HomeConnectWorker(threading.Thread):
                 latest = self.load_cfg()
                 if latest is None or latest.get("status") == "login_requested":
                     return
+                desc = token.get('error_description') or err
+                hint = (" Vérifie le Client Secret : recopie-le en entier depuis le portail Home Connect "
+                        "(Modifier les identifiants)." if "secret" in str(desc).lower() else "")
                 self.save_cfg(status="error", user_code=None, verification_uri=None,
-                              error=f"Autorisation refusée ou impossible ({token.get('error_description') or err}).")
+                              error=f"Autorisation refusée ou impossible ({desc}).{hint}")
                 return
         if not self.stop["now"]:
             self.save_cfg(status="error", user_code=None, verification_uri=None,
@@ -248,11 +261,8 @@ class HomeConnectWorker(threading.Thread):
         if self.access_token and not force and now_utc() < self.access_expires:
             return
         cfg = self.cfg
-        fields = {"grant_type": "refresh_token", "refresh_token": cfg.get("refresh_token") or "",
-                  "client_id": cfg["client_id"]}
-        if cfg.get("client_secret"):
-            fields["client_secret"] = cfg["client_secret"]
-        token = self._form("/security/oauth/token", fields)
+        token = self.token_request({"grant_type": "refresh_token", "refresh_token": cfg.get("refresh_token") or "",
+                                    "client_id": cfg["client_id"]})
         if "access_token" not in token:
             self.access_token = None
             self.save_cfg(status="error", error="Connexion Home Connect expirée : touche « Recommencer » "
