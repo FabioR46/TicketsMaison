@@ -16,6 +16,14 @@ urgences, appareils surveillés hors ligne, et la liste des tickets ouverts.
 
 > Une seule fois par projet Supabase : exécuter `supabase_v5.sql` dans le SQL Editor.
 
+## Remonter tes appareils Home Assistant dans l'app
+1. Une seule fois : exécuter `supabase_v6.sql` dans Supabase (SQL Editor).
+2. Paramètres › Appareils et services › Tickets Maison › **Configurer**.
+3. Choisis les entités (capteurs de connectivité Ping, suivis d'appareils, prises, portes…) et,
+   si tu veux, « Créer un ticket quand un appareil est hors ligne plus de 3 minutes ».
+4. Elles apparaissent dans l'écran **Status** de l'app. Hors ligne = entité indisponible,
+   capteur de connectivité à « off », suivi d'appareil « absent » ou capteur « problème » actif.
+
 ## Entités
 | Entité | Contenu |
 |---|---|

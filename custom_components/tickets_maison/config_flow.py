@@ -6,17 +6,24 @@ from typing import Any
 
 import voluptuous as vol
 
-from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
+from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResult, OptionsFlow
+from homeassistant.core import callback
+from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import HouseNotFound, InvalidAuth, InvalidCode, TicketsMaisonAPI, TicketsMaisonError, decode_code
-from .const import CONF_CODE, CONF_HOUSE, CONF_KEY, CONF_URL, DOMAIN
+from .const import CONF_ALERT, CONF_CODE, CONF_ENTITIES, CONF_HOUSE, CONF_KEY, CONF_URL, DOMAIN
 
 SCHEMA = vol.Schema({vol.Required(CONF_CODE): str})
 
 
 class TicketsMaisonConfigFlow(ConfigFlow, domain=DOMAIN):
     VERSION = 1
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
+        return TicketsMaisonOptionsFlow()
 
     async def _check(self, code: str) -> tuple[dict[str, str] | None, str | None, str | None]:
         """Renvoie (données, nom de la maison, erreur)."""
@@ -59,3 +66,19 @@ class TicketsMaisonConfigFlow(ConfigFlow, domain=DOMAIN):
             else:
                 return self.async_update_reload_and_abort(self._get_reauth_entry(), data=data)
         return self.async_show_form(step_id="reauth_confirm", data_schema=SCHEMA, errors=errors)
+
+
+class TicketsMaisonOptionsFlow(OptionsFlow):
+    """« Configurer » : choisir les entités Home Assistant à afficher dans l'app."""
+
+    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        if user_input is not None:
+            return self.async_create_entry(data=user_input)
+        options = self.config_entry.options
+        schema = vol.Schema({
+            vol.Optional(CONF_ENTITIES, default=options.get(CONF_ENTITIES, [])):
+                selector.EntitySelector(selector.EntitySelectorConfig(multiple=True)),
+            vol.Optional(CONF_ALERT, default=options.get(CONF_ALERT, False)):
+                selector.BooleanSelector(),
+        })
+        return self.async_show_form(step_id="init", data_schema=schema)

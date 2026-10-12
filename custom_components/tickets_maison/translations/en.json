@@ -26,5 +26,17 @@
       "already_configured": "This house is already connected.",
       "reauth_successful": "Reconnected."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Entities shown in the app",
+        "description": "Pick the Home Assistant entities whose state will appear in the Tickets Maison app (Status screen).",
+        "data": {
+          "entities": "Entities",
+          "alert_unavailable": "Create a ticket when a device is offline for more than 3 minutes"
+        }
+      }
+    }
   }
 }

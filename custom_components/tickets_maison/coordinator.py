@@ -35,6 +35,7 @@ class TicketsMaisonCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self.house_id,
         )
         self._last_number: str | None = None
+        self.entity_sync = None   # EntitySync (entités remontées dans l'app)
 
     async def _async_update_data(self) -> dict[str, Any]:
         try:

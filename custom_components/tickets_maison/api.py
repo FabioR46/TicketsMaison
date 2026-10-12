@@ -80,8 +80,8 @@ class TicketsMaisonAPI:
             raise HouseNotFound
         return data
 
-    async def _write(self, method: str, path: str, body: dict[str, Any]) -> None:
-        headers = {**self._headers, "Prefer": "return=minimal"}
+    async def _write(self, method: str, path: str, body: Any, prefer: str = "return=minimal") -> Any:
+        headers = {**self._headers, "Prefer": prefer}
         try:
             async with self._session.request(
                 method, f"{self._rest}/{path}", headers=headers, json=body,
@@ -91,8 +91,52 @@ class TicketsMaisonAPI:
                     raise InvalidAuth
                 if resp.status >= 400:
                     raise TicketsMaisonError(f"Erreur Supabase {resp.status}: {await resp.text()}")
+                if "return=representation" in prefer:
+                    return await resp.json(content_type=None)
+                return None
         except aiohttp.ClientError as err:
             raise TicketsMaisonError(f"Connexion impossible : {err}") from err
+
+    # ── Entités Home Assistant remontées dans l'app ──────────────────────
+
+    async def upsert_entities(self, rows: list[dict[str, Any]]) -> None:
+        if not rows:
+            return
+        for row in rows:
+            row["house_id"] = self._house
+        await self._write("POST", "ha_entities?on_conflict=house_id,entity_id", rows,
+                          prefer="resolution=merge-duplicates,return=minimal")
+
+    async def remove_entities_except(self, entity_ids: list[str]) -> None:
+        query = f"ha_entities?house_id=eq.{self._house}"
+        if entity_ids:
+            quoted = ",".join('"' + e.replace('"', "") + '"' for e in entity_ids)
+            query += f"&entity_id=not.in.({quoted})"
+        await self._write("DELETE", query, None)
+
+    async def set_entity_ticket(self, entity_id: str, ticket_id: str | None) -> None:
+        await self._write("PATCH", f"ha_entities?house_id=eq.{self._house}&entity_id=eq.{entity_id}",
+                          {"open_ticket_id": ticket_id})
+
+    async def open_entity_ticket(self, name: str, entity_id: str, since: str) -> str | None:
+        """Ticket « Hors ligne : … » (zone Home Assistant). Renvoie son id."""
+        created = await self._write("POST", "tickets", {
+            "house_id": self._house,
+            "theme": "Home Assistant",
+            "theme_icon": "house.lodge.fill",
+            "problem": f"Hors ligne : {name}"[:80],
+            "problem_icon": "wifi.exclamationmark",
+            "details": f"Home Assistant signale « {name} » ({entity_id}) hors ligne depuis le {since}."[:500],
+            "status": "sent",
+            "author": "Home Assistant",
+            "requested_priority": "normal",
+        }, prefer="return=representation")
+        return created[0]["id"] if created else None
+
+    async def add_message(self, ticket_id: str, text: str) -> None:
+        await self._write("POST", "messages", {
+            "ticket_id": ticket_id, "text": text[:500], "author": "Home Assistant", "from_admin": False,
+        })
 
     async def set_status(self, ticket_id: str, status: str) -> None:
         """Change le statut d'un ticket (resolved = résolu)."""
