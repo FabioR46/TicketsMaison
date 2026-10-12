@@ -53,8 +53,23 @@ if exist ".env" (
 
 :demande
 if defined CODE goto :ecrire
+
+rem Code déjà copié (ex. depuis le mail envoyé par l'app) : on le propose directement
+set "CLIP="
+for /f "usebackq delims=" %%C in (`powershell -NoProfile -Command "(Get-Clipboard) -join ''"`) do set "CLIP=%%C"
+if defined CLIP set "CLIP=!CLIP: =!"
+if defined CLIP if "!CLIP:~0,4!"=="TM1:" (
+  echo Code de connexion trouvé dans le presse-papiers : !CLIP:~0,14!...
+  set /p "USECLIP=L'utiliser ? (O/n) "
+  if /i not "!USECLIP!"=="n" (
+    set "CODE=!CLIP!"
+    goto :ecrire
+  )
+)
+
 echo Dans l'app Tickets Maison :
-echo   Réglages ^> Paramètres de la maison ^> Appareils ^> « Copier le code de connexion »
+echo   Réglages ^> Paramètres de la maison ^> Appareils ^> « Envoyer le code au PC »
+echo   (envoie-le par mail, ouvre le mail sur ce PC et copie le code)
 echo.
 set /p "CODE=Colle le code ici (clic droit) puis Entrée : "
 set "CODE=!CODE: =!"

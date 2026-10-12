@@ -45,9 +45,18 @@ if [ -f .env ] && grep -q '^TM_CODE=TM1:' .env; then
   read -r -p "Une configuration existe déjà. La garder ? (O/n) " KEEP
   case "$KEEP" in [nN]*) ;; *) CODE=$(grep '^TM_CODE=' .env | head -1 | cut -d= -f2-) ;; esac
 fi
+if [ -z "$CODE" ]; then
+  CLIP=$(pbpaste 2>/dev/null | tr -d '[:space:]')
+  case "$CLIP" in
+    TM1:*)
+      read -r -p "Code de connexion trouvé dans le presse-papiers (${CLIP:0:14}…). L'utiliser ? (O/n) " USECLIP
+      case "$USECLIP" in [nN]*) ;; *) CODE="$CLIP" ;; esac ;;
+  esac
+fi
 while [ -z "$CODE" ]; do
   echo "Dans l'app Tickets Maison :"
   echo "  Réglages › Paramètres de la maison › Appareils › « Copier le code de connexion »"
+  echo "  (sur iPhone : « Envoyer le code au PC », par mail ou AirDrop, puis copie-le ici)"
   echo
   read -r -p "Colle le code ici puis Entrée : " CODE
   CODE=$(echo "$CODE" | tr -d '[:space:]"'"'")
