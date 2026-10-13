@@ -159,6 +159,26 @@ class HomeConnectWorker(threading.Thread):
         self._db("POST", "appliances?on_conflict=house_id,ha_id", [row],
                  prefer="resolution=merge-duplicates,return=minimal")
 
+    def find_open_ticket(self, problem):
+        """Même problème sur le même appareil, ticket pas encore résolu → on le réutilise."""
+        q = urllib.parse.urlencode({"house_id": f"eq.{self.house}", "author": f"eq.{AUTHOR}",
+                                    "problem": f"eq.{problem[:80]}", "status": "neq.resolved",
+                                    "order": "created_at.desc", "limit": "1", "select": "id"},
+                                   quote_via=urllib.parse.quote)
+        try:
+            rows = self._db("GET", f"tickets?{q}")
+            return rows[0]["id"] if rows else None
+        except RuntimeError:
+            return None
+
+    def open_or_reuse(self, problem, details, icon):
+        existing = self.find_open_ticket(problem)
+        if existing:
+            self.add_message(existing, "🔁 " + details)
+            self.log(f"   ↳ regroupé dans le ticket déjà ouvert « {problem} »")
+            return existing
+        return self.create_ticket(None, problem, details, icon)
+
     def create_ticket(self, appliance, problem, details, icon):
         rows = self._db("POST", "tickets", {
             "house_id": self.house, "theme": ZONE, "theme_icon": ZONE_ICON,
@@ -327,8 +347,8 @@ class HomeConnectWorker(threading.Thread):
             if row.get("open_ticket_id"):
                 self.add_message(row["open_ticket_id"], f"⚠️ Nouvelle alerte : {label}.")
             else:
-                row["open_ticket_id"] = self.create_ticket(
-                    row, f"{name} : {label}",
+                row["open_ticket_id"] = self.open_or_reuse(
+                    f"{name} : {label}",
                     f"Home Connect signale « {label} » sur {name} ({row.get('brand') or ''}) "
                     f"le {self.local(now_utc()).strftime('%d/%m à %H:%M')}.", icon)
             self.log(f"⚠️ {name} : {label}")
@@ -376,7 +396,7 @@ class HomeConnectWorker(threading.Thread):
             if row.get("open_ticket_id"):
                 self.add_message(row["open_ticket_id"], "📡 " + text)
             else:
-                row["open_ticket_id"] = self.create_ticket(row, f"Hors ligne : {name}", text,
+                row["open_ticket_id"] = self.open_or_reuse(f"Hors ligne : {name}", text,
                                                            "wifi.exclamationmark")
             self.offline_alerted.add(ha_id)
             self.save_appliance(ha_id)

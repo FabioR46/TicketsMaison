@@ -133,6 +133,21 @@ class TicketsMaisonAPI:
         }, prefer="return=representation")
         return created[0]["id"] if created else None
 
+    async def find_open_ticket(self, problem: str, author: str = "Home Assistant") -> str | None:
+        """Ticket encore ouvert (non résolu) pour le même problème, sinon None."""
+        params = {"house_id": f"eq.{self._house}", "author": f"eq.{author}",
+                  "problem": f"eq.{problem[:80]}", "status": "neq.resolved",
+                  "order": "created_at.desc", "limit": "1", "select": "id"}
+        try:
+            async with self._session.get(f"{self._rest}/tickets", headers=self._headers, params=params,
+                                         timeout=aiohttp.ClientTimeout(total=15)) as resp:
+                if resp.status >= 400:
+                    return None
+                rows = await resp.json(content_type=None)
+        except aiohttp.ClientError:
+            return None
+        return rows[0]["id"] if rows else None
+
     async def add_message(self, ticket_id: str, text: str) -> None:
         await self._write("POST", "messages", {
             "ticket_id": ticket_id, "text": text[:500], "author": "Home Assistant", "from_admin": False,

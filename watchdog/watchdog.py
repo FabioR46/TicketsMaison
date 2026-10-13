@@ -231,6 +231,19 @@ def address(device):
     return f"{device['host']}:{device['port']}" if device.get("port") else f"{device['host']} (ping)"
 
 
+def find_open_ticket(db, problem, author=AUTHOR):
+    """Ticket encore ouvert (non résolu) pour le même problème : on le réutilise
+    au lieu d'en créer un nouveau à chaque coupure."""
+    try:
+        rows = db.select("tickets", house_id=f"eq.{HOUSE_ID}", author=f"eq.{author}",
+                         problem=f"eq.{problem}", status="neq.resolved",
+                         order="created_at.desc", limit="1", select="id")
+        return rows[0]["id"] if rows else None
+    except Exception as e:
+        log(f"⚠️ Recherche de ticket ouvert impossible : {e}")
+        return None
+
+
 def check(db, device):
     up = is_up(device)
     t = now_utc()
@@ -269,19 +282,29 @@ def check(db, device):
                        f"depuis le {local(first_fail)} ({fails} vérifications échouées).")
             if last_seen:
                 details += f" Dernière réponse : {local(last_seen)}."
-            ticket = db.insert("tickets", {
-                "house_id": HOUSE_ID,
-                "theme": ZONE_NAME,
-                "theme_icon": ZONE_ICON,
-                "problem": f"Hors ligne : {device['name']}",
-                "problem_icon": device.get("icon") or PROBLEM_ICON,
-                "details": details[:500],
-                "status": "sent",
-                "author": AUTHOR,
-            })
+            problem = f"Hors ligne : {device['name']}"
+            existing = find_open_ticket(db, problem)
+            if existing:
+                # Même panne, ticket pas encore résolu : on regroupe
+                db.insert("messages", {"ticket_id": existing, "from_admin": True, "author": AUTHOR,
+                                       "text": f"🔁 Nouvelle coupure le {local(first_fail)}. {details}"[:500]})
+                db.update("tickets", existing, {"theme": ZONE_NAME})   # remonte en tête de liste
+                ticket_id = existing
+                log(f"   ↳ regroupé dans le ticket déjà ouvert")
+            else:
+                ticket = db.insert("tickets", {
+                    "house_id": HOUSE_ID,
+                    "theme": ZONE_NAME,
+                    "theme_icon": ZONE_ICON,
+                    "problem": problem,
+                    "problem_icon": device.get("icon") or PROBLEM_ICON,
+                    "details": details[:500],
+                    "status": "sent",
+                    "author": AUTHOR,
+                })
+                ticket_id = ticket["id"] if ticket else None
             record_outage_start(db, device, first_fail)
-            changes.update(status="down", down_since=iso(first_fail),
-                           open_ticket_id=ticket["id"] if ticket else None)
+            changes.update(status="down", down_since=iso(first_fail), open_ticket_id=ticket_id)
         elif device["status"] != "down":
             log(f"… {device['name']} ne répond pas ({fails}/{FAILS})")
 

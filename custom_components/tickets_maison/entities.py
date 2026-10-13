@@ -115,7 +115,12 @@ class EntitySync:
                 return
             since = dt_util.as_local(state.last_changed).strftime("%d/%m à %H:%M")
             try:
-                ticket_id = await self.api.open_entity_ticket(state.name, entity_id, since)
+                # Même appareil, ticket « Hors ligne » pas encore résolu : on regroupe
+                ticket_id = await self.api.find_open_ticket(f"Hors ligne : {state.name}")
+                if ticket_id:
+                    await self.api.add_message(ticket_id, f"🔁 Nouvelle coupure de {state.name} le {since}.")
+                else:
+                    ticket_id = await self.api.open_entity_ticket(state.name, entity_id, since)
                 if ticket_id:
                     self._open_tickets[entity_id] = ticket_id
                     await self.api.set_entity_ticket(entity_id, ticket_id)
