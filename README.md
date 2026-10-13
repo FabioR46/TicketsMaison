@@ -30,6 +30,9 @@ Dans **Configurer**, coche « Créer un ticket quand une pile ou batterie est fa
 un ticket « Pile faible : Détecteur cuisine » est créé sous le seuil, puis un message « ✅ Pile changée »
 quand la batterie remonte.
 
+**Référence de la pile** : installe aussi l'intégration **Battery Notes** (HACS). Elle connaît le type de pile
+de milliers d'appareils (CR2032, 2× AAA…) : le ticket indique alors « 🔋 Pile à prévoir : CR2032 ».
+
 ## Entités
 | Entité | Contenu |
 |---|---|

@@ -1,7 +1,7 @@
 {
   "domain": "tickets_maison",
   "name": "Tickets Maison",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "documentation": "https://github.com/FabioR46/TicketsMaison",
   "codeowners": [],
   "config_flow": true,

@@ -28,7 +28,7 @@ class BatteryWatch:
         self.api = api
         self.enabled = bool(entry.options.get(CONF_BATTERY, False))
         self.threshold = int(entry.options.get(CONF_BATTERY_THRESHOLD, DEFAULT_BATTERY_THRESHOLD))
-        self.low: set[str] = set()      # entités déjà signalées (pile faible)
+        self.low: set[str] = set()      # appareils déjà signalés (pile faible)
         self._unsub = None
 
     # ── Démarrage / arrêt ────────────────────────────────────────────────
@@ -51,9 +51,12 @@ class BatteryWatch:
 
     # ── Détection ────────────────────────────────────────────────────────
 
-    @staticmethod
-    def _is_battery(state: State | None) -> bool:
+    def _is_battery(self, state: State | None) -> bool:
         if state is None or state.attributes.get(ATTR_DEVICE_CLASS) != "battery":
+            return False
+        # Entités ajoutées par Battery Notes : servent seulement à connaître le type de pile
+        entry = er.async_get(self.hass).async_get(state.entity_id)
+        if entry and entry.platform == "battery_notes":
             return False
         domain = state.entity_id.split(".", 1)[0]
         if domain == "binary_sensor":
@@ -75,6 +78,42 @@ class BatteryWatch:
             return float(state.state)
         except ValueError:
             return None
+
+    def _device(self, state: State):
+        entry = er.async_get(self.hass).async_get(state.entity_id)
+        if entry and entry.device_id:
+            return dr.async_get(self.hass).async_get(entry.device_id)
+        return None
+
+    def _battery_type(self, state: State) -> str | None:
+        """Référence de pile (« CR2032 », « 2× AAA ») : attribut de l'entité, ou intégration
+        Battery Notes (HACS) installée sur le même appareil."""
+        for key in ("battery_type_and_quantity", "battery_type"):
+            if state.attributes.get(key):
+                return str(state.attributes[key])
+        device = self._device(state)
+        if device is None:
+            return None
+        registry = er.async_get(self.hass)
+        for entry in er.async_entries_for_device(registry, device.id):
+            if entry.platform != "battery_notes":
+                continue
+            other = self.hass.states.get(entry.entity_id)
+            if other is None:
+                continue
+            for key in ("battery_type_and_quantity", "battery_type"):
+                if other.attributes.get(key):
+                    return str(other.attributes[key])
+            if entry.entity_id.endswith("_battery_type") and other.state not in (STATE_UNAVAILABLE, STATE_UNKNOWN, ""):
+                return other.state
+        return None
+
+    def _model(self, state: State) -> str | None:
+        device = self._device(state)
+        if device is None:
+            return None
+        parts = [p for p in (device.manufacturer, device.model) if p]
+        return " ".join(parts) or None
 
     def _device_name(self, state: State) -> str:
         """Nom de l'appareil (« Détecteur cuisine ») plutôt que de l'entité (« … Batterie »)."""
@@ -98,19 +137,26 @@ class BatteryWatch:
         problem = f"Pile faible : {name}"
         binary = entity_id.startswith("binary_sensor.")
         try:
-            if level < self.threshold and entity_id not in self.low:
-                self.low.add(entity_id)
+            if level < self.threshold and problem not in self.low:
+                self.low.add(problem)
                 existing = await self.api.find_open_ticket(problem)
                 if existing:
                     if not startup:
                         await self.api.add_message(existing, f"🔋 Toujours faible : {self._text(level, binary)}.")
                     return
-                details = (f"La batterie de « {name} » est à {self._text(level, binary)} "
-                           f"(seuil {self.threshold} %). Pense à changer la pile. ({entity_id})")
+                battery = self._battery_type(state)
+                model = self._model(state)
+                details = (f"La batterie de « {name} » est faible." if binary else
+                           f"La batterie de « {name} » est à {self._text(level, binary)} "
+                           f"(seuil {self.threshold} %).")
+                details += f" 🔋 Pile à prévoir : {battery}." if battery else " Pense à changer la pile."
+                if model:
+                    details += f" Appareil : {model}."
+                details += f" ({entity_id})"
                 await self.api.create_auto_ticket(problem, details, "battery.25percent")
                 _LOGGER.info("Tickets Maison : pile faible pour %s (%s)", name, level)
-            elif level >= self.threshold + BATTERY_HYSTERESIS and entity_id in self.low:
-                self.low.discard(entity_id)
+            elif level >= self.threshold + BATTERY_HYSTERESIS and problem in self.low:
+                self.low.discard(problem)
                 existing = await self.api.find_open_ticket(problem)
                 if existing:
                     await self.api.add_message(existing, f"✅ Pile changée : {self._text(level, binary)}.")
