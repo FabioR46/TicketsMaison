@@ -24,6 +24,12 @@ urgences, appareils surveillés hors ligne, et la liste des tickets ouverts.
 4. Elles apparaissent dans l'écran **Status** de l'app. Hors ligne = entité indisponible,
    capteur de connectivité à « off », suivi d'appareil « absent » ou capteur « problème » actif.
 
+## Piles faibles
+Dans **Configurer**, coche « Créer un ticket quand une pile ou batterie est faible » et choisis le seuil
+(20 % par défaut). Toutes les batteries de Home Assistant sont surveillées, sans rien sélectionner :
+un ticket « Pile faible : Détecteur cuisine » est créé sous le seuil, puis un message « ✅ Pile changée »
+quand la batterie remonte.
+
 ## Entités
 | Entité | Contenu |
 |---|---|

@@ -12,7 +12,10 @@ from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import HouseNotFound, InvalidAuth, InvalidCode, TicketsMaisonAPI, TicketsMaisonError, decode_code
-from .const import CONF_ALERT, CONF_CODE, CONF_ENTITIES, CONF_HOUSE, CONF_KEY, CONF_URL, DOMAIN
+from .const import (
+    CONF_ALERT, CONF_BATTERY, CONF_BATTERY_THRESHOLD, CONF_CODE, CONF_ENTITIES, CONF_HOUSE, CONF_KEY,
+    CONF_URL, DEFAULT_BATTERY_THRESHOLD, DOMAIN,
+)
 
 SCHEMA = vol.Schema({vol.Required(CONF_CODE): str})
 
@@ -80,5 +83,11 @@ class TicketsMaisonOptionsFlow(OptionsFlow):
                 selector.EntitySelector(selector.EntitySelectorConfig(multiple=True)),
             vol.Optional(CONF_ALERT, default=options.get(CONF_ALERT, False)):
                 selector.BooleanSelector(),
+            vol.Optional(CONF_BATTERY, default=options.get(CONF_BATTERY, False)):
+                selector.BooleanSelector(),
+            vol.Optional(CONF_BATTERY_THRESHOLD,
+                         default=options.get(CONF_BATTERY_THRESHOLD, DEFAULT_BATTERY_THRESHOLD)):
+                selector.NumberSelector(selector.NumberSelectorConfig(
+                    min=5, max=50, step=5, unit_of_measurement="%", mode=selector.NumberSelectorMode.SLIDER)),
         })
         return self.async_show_form(step_id="init", data_schema=schema)

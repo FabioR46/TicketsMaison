@@ -118,6 +118,21 @@ class TicketsMaisonAPI:
         await self._write("PATCH", f"ha_entities?house_id=eq.{self._house}&entity_id=eq.{entity_id}",
                           {"open_ticket_id": ticket_id})
 
+    async def create_auto_ticket(self, problem: str, details: str, icon: str) -> str | None:
+        """Ticket automatique (zone Home Assistant). Renvoie son id."""
+        created = await self._write("POST", "tickets", {
+            "house_id": self._house,
+            "theme": "Home Assistant",
+            "theme_icon": "house.lodge.fill",
+            "problem": problem[:80],
+            "problem_icon": icon,
+            "details": details[:500],
+            "status": "sent",
+            "author": "Home Assistant",
+            "requested_priority": "normal",
+        }, prefer="return=representation")
+        return created[0]["id"] if created else None
+
     async def open_entity_ticket(self, name: str, entity_id: str, since: str) -> str | None:
         """Ticket « Hors ligne : … » (zone Home Assistant). Renvoie son id."""
         created = await self._write("POST", "tickets", {

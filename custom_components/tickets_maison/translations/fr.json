@@ -34,7 +34,9 @@
         "description": "Choisis les entités Home Assistant à afficher dans l'app Tickets Maison (écran Status). Idéal : les capteurs de connectivité (intégration Ping…), les suivis d'appareils, ou n'importe quelle entité (indisponible = hors ligne).",
         "data": {
           "entities": "Entités",
-          "alert_unavailable": "Créer un ticket quand un appareil est hors ligne plus de 3 minutes"
+          "alert_unavailable": "Créer un ticket quand un appareil est hors ligne plus de 3 minutes",
+          "battery_alert": "Créer un ticket quand une pile ou batterie est faible (toutes les batteries de Home Assistant)",
+          "battery_threshold": "Seuil « pile faible »"
         }
       }
     }

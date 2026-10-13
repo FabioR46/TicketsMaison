@@ -6,6 +6,7 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 
 from .coordinator import TicketsMaisonCoordinator
+from .battery import BatteryWatch
 from .entities import EntitySync
 
 PLATFORMS = [Platform.SENSOR, Platform.BINARY_SENSOR, Platform.TODO]
@@ -25,6 +26,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: TicketsMaisonConfigEntry
     entry.async_on_unload(sync.async_stop)
     entry.async_on_unload(entry.add_update_listener(_options_updated))
     hass.async_create_task(sync.async_start())
+
+    # Piles et batteries faibles (option)
+    battery = BatteryWatch(hass, entry, coordinator.api)
+    entry.async_on_unload(battery.async_stop)
+    hass.async_create_task(battery.async_start())
     return True
 
 

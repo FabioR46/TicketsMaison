@@ -16,3 +16,9 @@ CONF_ALERT = "alert_unavailable"
 ALERT_DELAY = 180          # secondes d'indisponibilité avant de créer un ticket
 FLUSH_INTERVAL = timedelta(seconds=15)
 RESYNC_INTERVAL = timedelta(minutes=10)
+
+# Piles et batteries faibles
+CONF_BATTERY = "battery_alert"
+CONF_BATTERY_THRESHOLD = "battery_threshold"
+DEFAULT_BATTERY_THRESHOLD = 20
+BATTERY_HYSTERESIS = 10    # « pile changée » quand on repasse au-dessus du seuil + 10 %
